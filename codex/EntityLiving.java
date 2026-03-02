@@ -897,18 +897,25 @@ public abstract class EntityLiving extends Entity {
     public void a(Entity entity, float f, double d0, double d1) {
         if (this.random.nextDouble() >= this.getAttributeInstance(GenericAttributes.c).getValue()) {
             this.ai = true;
-            float f1 = MathHelper.sqrt(d0 * d0 + d1 * d1);
-            float f2 = 0.4F;
-
-            this.motX /= 2.0D;
-            this.motY /= 2.0D;
-            this.motZ /= 2.0D;
-            this.motX -= d0 / (double) f1 * (double) f2;
-            this.motY += (double) f2;
-            this.motZ -= d1 / (double) f1 * (double) f2;
-            if (this.motY > 0.4000000059604645D) {
-                this.motY = 0.4000000059604645D;
+            // PandaSpigot start - Configurable knockback profiles
+            com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.VelocityBehaviour velocityConfig = entity.world.pandaSpigotConfig.knockback.getVelocityBehaviour();
+            double magnitude = MathHelper.sqrt(d0 * d0 + d1 * d1);
+            if (magnitude <= 0.0D) {
+                return;
             }
+
+            this.motX /= velocityConfig.horizontalFriction;
+            this.motY /= velocityConfig.verticalFriction;
+            this.motZ /= velocityConfig.horizontalFriction;
+
+            this.motX -= d0 / magnitude * velocityConfig.resolveHorizontal(this);
+            this.motY += velocityConfig.resolveVertical(this);
+            this.motZ -= d1 / magnitude * velocityConfig.resolveHorizontal(this);
+
+            if (this.motY > velocityConfig.verticalLimit) {
+                this.motY = velocityConfig.verticalLimit;
+            }
+            // PandaSpigot end
 
         }
     }
