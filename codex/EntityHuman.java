@@ -1002,12 +1002,26 @@ public abstract class EntityHuman extends EntityLiving {
                     boolean flag2 = entity.damageEntity(DamageSource.playerAttack(this), f);
 
                     if (flag2) {
-                        if (i > 0) {
-                            entity.g((double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F), 0.1D, (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F));
-                            this.motX *= 0.6D;
-                            this.motZ *= 0.6D;
-                            this.setSprinting(false);
+                        // PandaSpigot start - Configurable knockback profiles
+                        com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.KnockbackConfig knockbackConfig = entity.world.pandaSpigotConfig.knockback;
+                        com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.VelocityBehaviour velocityConfig = knockbackConfig.getVelocityBehaviour();
+                        com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.HitDelayBehaviour hitDelayConfig = knockbackConfig.getHitDelayBehaviour();
+                        if (entity instanceof EntityLiving) {
+                            ((EntityLiving) entity).maxNoDamageTicks = hitDelayConfig.hitDelay;
                         }
+
+                        if (i > 0) {
+                            entity.g(
+                                    -MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * velocityConfig.extraHorizontal,
+                                    velocityConfig.extraVertical,
+                                    MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * velocityConfig.extraHorizontal);
+                            this.motX *= velocityConfig.sprintingSlowdown;
+                            this.motZ *= velocityConfig.sprintingSlowdown;
+                            if (velocityConfig.stopSprinting) {
+                                this.setSprinting(false);
+                            }
+                        }
+                        // PandaSpigot end
 
                         if (entity instanceof EntityPlayer && entity.velocityChanged) {
                             // CraftBukkit start - Add Velocity Event
