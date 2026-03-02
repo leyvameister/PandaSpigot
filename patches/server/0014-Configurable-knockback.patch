@@ -8,7 +8,7 @@ This patch allows velocity applied when a player is hit to be modified in the co
 Reference: https://gist.github.com/YoungOG/e3265d98661957abece71594b70d6a01
 
 diff --git a/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java b/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java
-index 9afaf630481a9533fb014f306d4d90b8de80a129..3dd3d0702c17541083d0d365ca46e93602105bce 100644
+index 9afaf630481a9533fb014f306d4d90b8de80a129..77f3c6b8f9de4f5f4d756916609d9d3d1b3b5d7f 100644
 --- a/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java
 +++ b/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java
 @@ -6,4 +6,16 @@ import org.spongepowered.configurate.objectmapping.meta.Comment;
@@ -20,16 +20,65 @@ index 9afaf630481a9533fb014f306d4d90b8de80a129..3dd3d0702c17541083d0d365ca46e936
 +    
 +    @ConfigSerializable
 +    public static class KnockbackConfig {
++        @Comment("Preset used for knockback. Available: custom, default, blockhit, slowdown, vertical")
++        public String preset = "custom";
++
 +        public double friction = 2.0;
 +        public double horizontal = 0.4;
 +        public double vertical = 0.4;
 +        public double verticalLimit = 0.4000000059604645;
 +        public double extraHorizontal = 0.5;
 +        public double extraVertical = 0.1;
++        public boolean stopSprinting = true;
++        public double sprintingSlowdown = 0.6;
++        public int hitDelay = 20;
++
++        public Profile getProfile() {
++            switch (this.preset.toLowerCase(java.util.Locale.ROOT)) {
++                case "blockhit":
++                    return new Profile(9.0, 0.56, 0.34, 0.6, 0.24, 0.04, true, 0.65, 20);
++                case "default":
++                    return new Profile(9.0, 0.56, 0.35, 1.0, 0.18, 0.03, true, 0.65, 19);
++                case "slowdown":
++                    return new Profile(9.2, 0.56, 0.34, 0.6, 0.17, 0.045, true, 1.0, 20);
++                case "vertical":
++                    return new Profile(6.0, 0.58, 0.34, 0.6, 0.25, 0.045, true, 1.0, 20);
++                default:
++                    return new Profile(this.friction, this.horizontal, this.vertical, this.verticalLimit,
++                            this.extraHorizontal, this.extraVertical, this.stopSprinting, this.sprintingSlowdown,
++                            this.hitDelay);
++            }
++        }
++
++        public static final class Profile {
++            public final double friction;
++            public final double horizontal;
++            public final double vertical;
++            public final double verticalLimit;
++            public final double extraHorizontal;
++            public final double extraVertical;
++            public final boolean stopSprinting;
++            public final double sprintingSlowdown;
++            public final int hitDelay;
++
++            private Profile(double friction, double horizontal, double vertical, double verticalLimit,
++                            double extraHorizontal, double extraVertical, boolean stopSprinting,
++                            double sprintingSlowdown, int hitDelay) {
++                this.friction = friction;
++                this.horizontal = horizontal;
++                this.vertical = vertical;
++                this.verticalLimit = verticalLimit;
++                this.extraHorizontal = extraHorizontal;
++                this.extraVertical = extraVertical;
++                this.stopSprinting = stopSprinting;
++                this.sprintingSlowdown = sprintingSlowdown;
++                this.hitDelay = hitDelay;
++            }
++        }
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/EntityHuman.java b/src/main/java/net/minecraft/server/EntityHuman.java
-index 0ad4edb8390f396d935d321caf67af0f209d5420..04916c6a8ee6446e786eb23c54ae78e8d2cba84d 100644
+index 0ad4edb8390f396d935d321caf67af0f209d5420..ac2f5f0acdf38e2f0f4c404981e7c8c5a6fbe218 100644
 --- a/src/main/java/net/minecraft/server/EntityHuman.java
 +++ b/src/main/java/net/minecraft/server/EntityHuman.java
 @@ -1003,7 +1003,13 @@ public abstract class EntityHuman extends EntityLiving {
@@ -38,17 +87,17 @@ index 0ad4edb8390f396d935d321caf67af0f209d5420..04916c6a8ee6446e786eb23c54ae78e8
                          if (i > 0) {
 -                            entity.g((double) (-MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F), 0.1D, (double) (MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * 0.5F));
 +                            // PandaSpigot start - Configurable knockback
-+                            com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.KnockbackConfig knockbackConfig = entity.world.pandaSpigotConfig.knockback;
++                            com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.KnockbackConfig.Profile profile = entity.world.pandaSpigotConfig.knockback.getProfile();
 +                            entity.g(
-+                                    -MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * knockbackConfig.extraHorizontal,
-+                                    knockbackConfig.extraVertical,
-+                                    MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * knockbackConfig.extraHorizontal);
++                                    -MathHelper.sin(this.yaw * 3.1415927F / 180.0F) * (float) i * profile.extraHorizontal,
++                                    profile.extraVertical,
++                                    MathHelper.cos(this.yaw * 3.1415927F / 180.0F) * (float) i * profile.extraHorizontal);
 +                            // PandaSpigot end
-                             this.motX *= 0.6D;
-                             this.motZ *= 0.6D;
-                             this.setSprinting(false);
+                             this.motX *= profile.sprintingSlowdown; // PandaSpigot
+                             this.motZ *= profile.sprintingSlowdown; // PandaSpigot
+                             if (profile.stopSprinting) this.setSprinting(false); // PandaSpigot
 diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
-index c8b4e292849486eadfb437110466d6eafe275411..72c7e6fc8bb0a71877d6759af44d39030bcf51f5 100644
+index c8b4e292849486eadfb437110466d6eafe275411..e7a4cf690a74b418bc6f89ce74f31963db7dc5ff 100644
 --- a/src/main/java/net/minecraft/server/EntityLiving.java
 +++ b/src/main/java/net/minecraft/server/EntityLiving.java
 @@ -897,18 +897,23 @@ public abstract class EntityLiving extends Entity {
@@ -67,20 +116,20 @@ index c8b4e292849486eadfb437110466d6eafe275411..72c7e6fc8bb0a71877d6759af44d3903
 -            if (this.motY > 0.4000000059604645D) {
 -                this.motY = 0.4000000059604645D;
 +            // PandaSpigot start - Configurable knockback
-+            com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.KnockbackConfig knockbackConfig = entity.world.pandaSpigotConfig.knockback;
++            com.hpfxd.pandaspigot.config.PandaSpigotWorldConfig.KnockbackConfig.Profile profile = entity.world.pandaSpigotConfig.knockback.getProfile();
 +            double magnitude = MathHelper.sqrt(d0 * d0 + d1 * d1);
 +    
-+            double friction = knockbackConfig.friction;
-+            this.motX /= friction;
-+            this.motY /= friction;
-+            this.motZ /= friction;
++            this.maxNoDamageTicks = profile.hitDelay;
++            this.motX /= profile.friction;
++            this.motY /= profile.friction;
++            this.motZ /= profile.friction;
 +    
-+            this.motX -= d0 / magnitude * knockbackConfig.horizontal;
-+            this.motY += knockbackConfig.vertical;
-+            this.motZ -= d1 / magnitude * knockbackConfig.horizontal;
++            this.motX -= d0 / magnitude * profile.horizontal;
++            this.motY += profile.vertical;
++            this.motZ -= d1 / magnitude * profile.horizontal;
 +    
-+            if (this.motY > knockbackConfig.verticalLimit) {
-+                this.motY = knockbackConfig.verticalLimit;
++            if (this.motY > profile.verticalLimit) {
++                this.motY = profile.verticalLimit;
              }
 +            // PandaSpigot end
  
