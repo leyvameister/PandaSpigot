@@ -11,7 +11,7 @@ diff --git a/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.j
 index 9afaf630481a9533fb014f306d4d90b8de80a129..77f3c6b8f9de4f5f4d756916609d9d3d1b3b5d7f 100644
 --- a/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java
 +++ b/src/main/java/com/hpfxd/pandaspigot/config/PandaSpigotWorldConfig.java
-@@ -6,4 +6,16 @@ import org.spongepowered.configurate.objectmapping.meta.Comment;
+@@ -6,4 +6,65 @@ import org.spongepowered.configurate.objectmapping.meta.Comment;
  @ConfigSerializable
  @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
  public class PandaSpigotWorldConfig {
